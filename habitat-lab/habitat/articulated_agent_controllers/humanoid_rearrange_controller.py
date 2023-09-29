@@ -109,10 +109,23 @@ class HumanoidRearrangeController:
         self.prev_orientation = None
         self.walk_mocap_frame = 0
 
-    def reset(self, position) -> None:
+    def set_framerate_for_linspeed(self, lin_speed, ang_speed, ctrl_freq):
+        seconds_per_step = 1.0 / ctrl_freq
+        meters_per_step = lin_speed * seconds_per_step
+        frames_per_step = meters_per_step / self.dist_per_step_size
+        self.draw_fps = self.walk_motion.fps / frames_per_step
+        rotate_amount = ang_speed * seconds_per_step
+        rotate_amount = rotate_amount * 180.0 / np.pi
+        self.turning_step_amount = rotate_amount
+        self.threshold_rotate_not_move = rotate_amount
+
+    def reset(self, base_transformation) -> None:
         """Reset the joints on the human. (Put in rest state)"""
         self.obj_transform_offset = mn.Matrix4()
-        self.obj_transform_base.translation = position + self.base_offset
+        self.obj_transform_base = base_transformation
+        self.prev_orientation = base_transformation.transform_vector(
+            mn.Vector3(1.0, 0.0, 0.0)
+        )
 
     def calculate_stop_pose(self):
         """
